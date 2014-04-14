@@ -1,6 +1,7 @@
 // Width and height of the svg
-var w = 500;
-var h = 100;
+var w = 1000;
+var h = 500;
+var pad = 3;
 
 var svg = d3.select("body")
 	.append("svg")
@@ -29,10 +30,18 @@ function display(data) {
 			});
 		})
 		.entries(data);
+        
+        byRoute.sort(function(a, b) {
+            return d3.descending(a.values, b.values);
+        });
 	
-	var scale = d3.scale.linear()
+	var sizeScale = d3.scale.linear()
 		.domain([0, d3.max(byRoute, function(d) { return d.values; })])
 		.range([0, h]);
+        
+        var rgbScale = d3.scale.linear()
+		.domain([0, d3.max(byRoute, function(d) { return d.values; })])
+		.range([0, 255]);
 	
 	var rects = svg.selectAll("rect")
 		.data(byRoute)
@@ -42,11 +51,13 @@ function display(data) {
 			return i * (w / byRoute.length);
 		})
 		.attr("y", function(d) {
-			return h - scale(d.values);
+			return h - sizeScale(d.values);
 		})
-		.attr("width", w / byRoute.length - 1)
+		.attr("width", w / byRoute.length - pad)
 		.attr("height", function(d) {
-			return scale(d.values);
+			return sizeScale(d.values);
 		})
-		.attr("fill", "cyan");
+		.attr("fill", function(d) {
+                    return "rgb(0, " + d3.round(rgbScale(d.values)) + ", 0)";
+                });
 }
