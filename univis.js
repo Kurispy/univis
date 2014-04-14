@@ -47,15 +47,32 @@ function display(data) {
 		.data(byRoute)
 		.enter()
 		.append("rect")
+                .on("mouseover", function(d) {
+                    d3.select(this)
+                    .attr("stroke", "red");
+            
+                    svg.append("text")
+                            .attr("x", w - 500)
+                            .attr("y", 50)
+                            .text(d.key + " " + d.values);
+                })
+                .on("mouseout", function(d) {
+                    d3.select(this)
+                    .attr("stroke", null);
+            
+                    d3.selectAll("text")
+                            .remove();
+                })
+                .attr("stroke-width", 2)
 		.attr("x", function(d, i) {
-			return i * (w / byRoute.length);
+                    return i * (w / byRoute.length);
 		})
 		.attr("y", function(d) {
-			return h - sizeScale(d.values);
+                    return h - sizeScale(d.values);
 		})
 		.attr("width", w / byRoute.length - pad)
 		.attr("height", function(d) {
-			return sizeScale(d.values);
+                    return sizeScale(d.values);
 		})
 		.attr("fill", function(d) {
                     return "rgb(0, " + d3.round(rgbScale(d.values)) + ", 0)";
