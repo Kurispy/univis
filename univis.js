@@ -1,12 +1,8 @@
-// Width and height of the svg
-var w = 1000;
-var h = 500;
-var pad = 3;
+var pad = 1;
 
-var svg = d3.select("body")
+var canvas = d3.select("body")
 	.append("svg")
-	.attr("width", w)
-	.attr("height", h);
+	.attr("class", "canvas");
 
 // Read in the csv file
 d3.csv("unitrans-oct-2011.csv", function(d) {
@@ -37,13 +33,13 @@ function display(data) {
 	
 	var sizeScale = d3.scale.linear()
 		.domain([0, d3.max(byRoute, function(d) { return d.values; })])
-		.range([0, h]);
+		.range([0, 100]);
         
         var rgbScale = d3.scale.linear()
 		.domain([0, d3.max(byRoute, function(d) { return d.values; })])
 		.range([0, 255]);
 	
-	var rects = svg.selectAll("rect")
+	var rects = canvas.selectAll("rect")
 		.data(byRoute)
 		.enter()
 		.append("rect")
@@ -51,9 +47,9 @@ function display(data) {
                     d3.select(this)
                     .attr("stroke", "red");
             
-                    svg.append("text")
-                            .attr("x", w - 500)
-                            .attr("y", 50)
+                    canvas.append("text")
+                            .attr("x", "50%")
+                            .attr("y", "25%")
                             .text(d.key + " " + d.values);
                 })
                 .on("mouseout", function(d) {
@@ -65,14 +61,14 @@ function display(data) {
                 })
                 .attr("stroke-width", 2)
 		.attr("x", function(d, i) {
-                    return i * (w / byRoute.length);
+                    return i * (100 / byRoute.length) + "%";
 		})
 		.attr("y", function(d) {
-                    return h - sizeScale(d.values);
+                    return 100 - sizeScale(d.values) + "%";
 		})
-		.attr("width", w / byRoute.length - pad)
+		.attr("width", (100 / byRoute.length - pad) + "%")
 		.attr("height", function(d) {
-                    return sizeScale(d.values);
+                    return sizeScale(d.values) + "%";
 		})
 		.attr("fill", function(d) {
                     return "rgb(0, " + d3.round(rgbScale(d.values)) + ", 0)";
