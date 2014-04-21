@@ -1,8 +1,58 @@
-var pad = 1;
+var barPad = 1;
 
+// Main display, contains all other displays
 var canvas = d3.select("body")
 	.append("svg")
-	.attr("class", "canvas");
+	.attr({
+            height: "100%",
+            width: "100%",
+            viewBox: "0 0 960 560"
+        });
+
+// Displays a map with bus route overlays
+var mapDisplay = canvas.append("svg")
+        .attr({
+            x: 0,
+            y: 0,
+            width: 700,
+            height: 365
+        });
+
+// Displays a graph of passengers vs. bus line
+var passCountDisplay = canvas.append("svg")
+        .attr({
+            x: 0,
+            y: 365,
+            width: 480,
+            height: 195
+        });
+
+// Displays a graph of how many passengers boarded/deboarded at a stop
+var stopInfoDisplay = canvas.append("svg")
+        .attr({
+            x: 480,
+            y: 365,
+            width: 480,
+            height: 195
+        });
+
+// Contains controls for manipulating what data is displayed
+var controlDisplay = canvas.append("svg")
+        .attr({
+            x: 700,
+            y: 0,
+            width: 260,
+            height: 260
+        });
+
+// Contains info about the currently selected route
+var routeInfoDisplay = canvas.append("svg")
+        .attr({
+            x: 700,
+            y: 260,
+            width: 260,
+            height: 105
+        });
 
 // Read in the csv file
 d3.csv("unitrans-oct-2011.csv", function(d) {
@@ -39,15 +89,15 @@ function display(data) {
 		.domain([0, d3.max(byRoute, function(d) { return d.values; })])
 		.range([0, 255]);
 	
-	var rects = canvas.selectAll("rect")
+	var rects = passCountDisplay.selectAll("rect")
 		.data(byRoute)
 		.enter()
 		.append("rect")
                 .on("mouseover", function(d) {
                     d3.select(this)
-                    .attr("stroke", "red");
+                            .attr("stroke", "red");
             
-                    canvas.append("text")
+                    passCountDisplay.append("text")
                             .attr("x", "50%")
                             .attr("y", "25%")
                             .text(d.key + " " + d.values);
@@ -61,12 +111,12 @@ function display(data) {
                 })
                 .attr("stroke-width", 2)
 		.attr("x", function(d, i) {
-                    return i * (100 / byRoute.length) + "%";
+                    return i * (100 / byRoute.length) + (barPad / 2) + "%";
 		})
 		.attr("y", function(d) {
                     return 100 - sizeScale(d.values) + "%";
 		})
-		.attr("width", (100 / byRoute.length - pad) + "%")
+		.attr("width", (100 / byRoute.length - barPad) + "%")
 		.attr("height", function(d) {
                     return sizeScale(d.values) + "%";
 		})
