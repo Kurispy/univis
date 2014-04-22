@@ -72,7 +72,7 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
     };
 }, init);
 
-// Main display function
+// Main display initialization function
 function init(data) {
     var routeButton = controlDisplay.selectAll("g")
         .data(activeRoutes)
@@ -80,9 +80,11 @@ function init(data) {
         .append("g");
     
     routeButton.append("rect")
-        .attr("class", "routeSwitchBG")
-        .attr("height", 26)
-        .attr("width", 26)
+        .attr({
+            class: "dataSwitchBG",
+            height: 26,
+            width: 26
+        })
         .attr("fill", function(d) {
             return routeColors[d];
         })
@@ -94,9 +96,7 @@ function init(data) {
         });
         
     routeButton.append("text")
-        .attr("class", "routeSwitchName")
-        .attr("user-select", "none")
-        .attr("text-anchor", "middle")
+        .attr("class", "dataSwitchText")
         .attr("x", function(d, i) {
             return 208 + Math.floor(i / 9) * 26 + 13;
         })
@@ -108,10 +108,11 @@ function init(data) {
         });
         
     routeButton.append("rect")
-        .attr("class", "routeSwitch")
-        .attr("height", 26)
-        .attr("width", 26)
-        .attr("fill-opacity", 0)
+        .attr({
+            class: "dataSwitch",
+            height: 26,
+            width: 26
+        })
         .attr("x", function(d, i) {
             return 208 + Math.floor(i / 9) * 26;
         })
@@ -120,22 +121,32 @@ function init(data) {
         })
         .on("click", function(d) {
             if(activeRoutes.indexOf(d) !== -1) {
+                d3.select(this.parentNode)
+                    .select("rect.dataSwitchBG")
+                    .attr("fill", "#000000");
+                d3.select(this.parentNode)
+                    .select("text.dataSwitchText")
+                    .attr("fill", "#FFFFFF");
                 activeRoutes.splice(activeRoutes.indexOf(d),1);
                 updateDisplays(data);
             }
             else {
+                d3.select(this.parentNode)
+                    .select("rect.dataSwitchBG")
+                    .attr("fill", routeColors[d]);
+                d3.select(this.parentNode)
+                    .select("text.dataSwitchText")
+                    .attr("fill", "#000000");
                 activeRoutes.push(d);
                 updateDisplays(data);
             }
         });
     
-    // Examine current settings to see what data is active
-    
     updateDisplays(data);
 }
 
 function updateDisplays(data) {
-    console.log(activeRoutes);
+    // Examine current settings to see what data is active
     var activeData = data.filter(function(element) {
         return activeRoutes.indexOf(element.route) !== -1
            && activeDays.indexOf(element.date.getDay()) !== -1; 

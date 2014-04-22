@@ -20,3 +20,17 @@ body {
     width: 100%;
     text-align: center;
 }
+
+.dataSwitch {
+    fill-opacity: 0;
+    cursor: pointer;
+}
+
+.dataSwitchBG {
+    stroke: black;
+    stroke-width: 1
+}
+
+.dataSwitchText {
+    text-anchor: middle
+}
