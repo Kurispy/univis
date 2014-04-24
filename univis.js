@@ -25,7 +25,12 @@ var routeDescriptions = {A:"Downtown / 5th St. / Alhambra",
     T:"Davis High",
     V:"West Village",
     W:"Cowell / Lillard / Drummond"};
-var routeBusiestStop;
+var routeTerminals = {A:"Silo", B:"MU", C:"Silo", D:"Silo",
+    E:"MU", F:"MU", G:"MU", J:"Silo", K:"MU",
+    L:"Silo", M:"MU", O:"Silo", P:"MU", Q:"MU",
+    S:"", T:"", V:"Silo", W:"Silo"};
+var routeBusiestStopB = new Object();
+var routeBusiestStopD = new Object();
 
 
 // Main display, contains all other displays
@@ -106,6 +111,7 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
             return activeRoutes.indexOf(element.route) !== -1
                && activeDays.indexOf(element.date.getDay()) !== -1; 
         });
+        
         // PASSENGER COUNT DISPLAY
         var byRoute = d3.nest()
             .key(function(d) { return d.route; })
@@ -131,6 +137,7 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
             .range([0, 255]);
 
         // Bars
+        // Enter
         passCountDisplay.selectAll("rect")
             .data(byRoute)
             .enter()
@@ -166,7 +173,8 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
             .attr("fill", function(d) {
                 return routeColors[d.key];
             });
-
+        
+        // Update
         passCountDisplay.selectAll("rect")
             .data(byRoute)
             .attr("stroke-width", 2)
@@ -183,7 +191,8 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
             .attr("fill", function(d) {
                 return routeColors[d.key];
             });
-
+        
+        // Exit
         passCountDisplay.selectAll("rect")
             .data(byRoute)
             .exit()
@@ -258,6 +267,36 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
                     activeRoutes.push(d);
                     updateDisplays(data);
                 }
+            })
+            .on("mouseover", function(d) {
+                routeInfoDisplay.append("text")
+                    .attr({
+                        class: "routeInfoHeader",
+                        x: 15,
+                        y: 15
+                    })
+                    .text(d + " Line");
+                
+                routeInfoDisplay.append("text")
+                    .attr({
+                        class: "routeInfoText",
+                        x: 15,
+                        y: 30
+                    })
+                    .text(routeDescriptions[d]);
+            
+                routeInfoDisplay.append("text")
+                    .attr({
+                        class: "routeInfoText",
+                        "text-anchor": "end",
+                        x: 260,
+                        y: 15
+                    })
+                    .text(routeTerminals[d]);
+            })
+            .on("mouseout", function(d) {
+                routeInfoDisplay.selectAll("text")
+                    .remove();
             });
 
         var dayButton = controlDisplay.append("g")

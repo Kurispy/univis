@@ -34,3 +34,12 @@ body {
 .dataSwitchText {
     text-anchor: middle
 }
+
+.routeInfoHeader {
+    font-size: 14pt;
+    font-weight: bold
+}
+
+.routeInfoText {
+    font-size: 10pt
+}
