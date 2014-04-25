@@ -200,6 +200,80 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
     }
     
     function initControlDisplay() {
+        initTimescaleControl();
+        initRouteButtons();
+        
+            
+    }
+    
+    function initTimescaleControl() {
+        
+        
+        var byDate = d3.nest()
+            .key(function(d) { return d.date.getDate(); })
+            .sortKeys(d3.ascending)
+            .rollup(function(d) {
+                return d3.sum(d, function(b) { 
+                    return b.boarding;
+                });
+            })
+            .entries(data);
+        
+        
+        var timescaleController = controlDisplay.append("g")
+            .attr("transform", "translate(26, 26)");
+        
+        var xScale = d3.scale.linear()
+            .domain([0, d3.max(byDate, function(d) { return d.values; })])
+            .range([0, 130]);
+        
+        var yScale = d3.time.scale()
+            .domain([d3.min(data, function(d) { return d.date; }),
+                d3.max(data, function(d) { return d.date; })])
+            .range([0, 182]);
+        
+        var yAxis = d3.svg.axis()
+            .scale(yScale)
+            .orient("left")
+            .tickSize(0)
+            .ticks(31);
+    
+        var zoom = d3.behavior.zoom()
+            .x(xScale)
+            .y(yScale)
+            .size([130, 182])
+            .scaleExtent([1, 100])
+            .on("zoom", onZoom);
+        
+        timescaleController.call(zoom);
+        
+        timescaleController.append("g")
+            .attr("class", "timeAxis")
+            .call(yAxis);
+        
+        timescaleController.selectAll("rect")
+            .data(byDate)
+            .enter()
+            .append("rect")
+            .attr("width", function(d) {
+                return xScale(d.values);
+            })
+            .attr("height", 182 / byDate.length)
+            .attr("y", function(d, i){
+                return (182 / byDate.length) * i;
+            })
+            .attr("fill", function(d, i) {
+                return (i % 2) ? "#888" : "#000";
+            });
+            
+        function onZoom() {
+            timescaleController.select(".timeAxis").call(yAxis);
+            timescaleController.selectAll("rect")
+                .attr("transform", "translate(0, " + d3.event.translate[1] + ")scale(" + d3.event.scale + ")");
+        }
+    }
+    
+    function initRouteButtons() {
         var routeButton = controlDisplay.append("g")
             .selectAll("g")
             .data(activeRoutes)
@@ -365,6 +439,5 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
                     updateDisplays(data);
                 }
             });
-            
     }
 });

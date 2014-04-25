@@ -43,3 +43,12 @@ body {
 .routeInfoText {
     font-size: 10pt
 }
+
+.axis {
+    font-size: 6pt
+}
+
+.timeAxis {
+    cursor: pointer;
+    font-size: 5pt
+}
