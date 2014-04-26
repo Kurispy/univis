@@ -37,54 +37,60 @@ var routeBusiestStopD = new Object();
 var canvas = d3.select("body")
     .append("svg")
     .attr({
-        height: "100%",
         width: "100%",
-        viewBox: "0 0 960 560"
+        height: "100%",
+        //viewBox: "0 0 960 560"
     });
 
 // Displays a map with bus route overlays
-var mapDisplay = canvas.append("svg")
-    .attr({
-        x: 0,
-        y: 0,
-        width: 700,
-        height: 365
+var mapDisplay = d3.select("body").append("div")
+    .attr("id", "map-canvas")
+    .style({
+        position: "absolute",
+        left: "0px",
+        top: "0px",
+        width: "73%",
+        height: "67%"
     });
-
+    
 // Displays a graph of passengers vs. bus line
 var passCountDisplay = canvas.append("svg")
     .attr({
         x: 0,
-        y: 365,
-        width: 480,
-        height: 195
+        y: "67%",
+        width: "50%",
+        height: "33%",
+        //viewBox: "0 0 480 195"
     });
 
 // Displays a graph of how many passengers boarded/deboarded at a stop
 var stopInfoDisplay = canvas.append("svg")
     .attr({
-        x: 480,
-        y: 365,
-        width: 480,
-        height: 195
+        x: "50%",
+        y: "67%",
+        width: "50%",
+        height: "33%",
+        viewBox: "0 0 480 195"
     });
 
 // Contains controls for manipulating what data is displayed
 var controlDisplay = canvas.append("svg")
     .attr({
-        x: 700,
+        x: "73%",
         y: 0,
-        width: 260,
-        height: 260
+        width: "27%",
+        height: "48.25%",
+        viewBox: "0 0 260 260"
     });
 
 // Contains info about the currently selected route
 var routeInfoDisplay = canvas.append("svg")
     .attr({
-        x: 700,
-        y: 260,
-        width: 260,
-        height: 105
+        x: "73%",
+        y: "48.25%",
+        width: "27%",
+        height: "18.75%",
+        viewBox: "0 0 260 105"
     });
 
 // Read in the csv file
@@ -103,6 +109,7 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
     
     function initDisplays() {
         initControlDisplay();
+        initMapDisplay();
     }
     
     function updateDisplays() {
@@ -206,6 +213,15 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
             
     }
     
+    function initMapDisplay() {
+        var mapOptions = {
+          center: new google.maps.LatLng(38.554739, -121.734095),
+          zoom: 13
+        };
+        var map = new google.maps.Map(document.getElementById("map-canvas"), mapOptions);
+        
+    }
+    
     function initTimescaleControl() {
         
         
@@ -269,7 +285,8 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
         function onZoom() {
             timescaleController.select(".timeAxis").call(yAxis);
             timescaleController.selectAll("rect")
-                .attr("transform", "translate(0, " + d3.event.translate[1] + ")scale(" + d3.event.scale + ")");
+                .attr("transform", "translate(0, " + d3.event.translate[1] + 
+                    "), scale(" + d3.event.scale + ")");
         }
     }
     
