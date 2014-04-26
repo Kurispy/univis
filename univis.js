@@ -2,6 +2,7 @@ var barPad = 1;
 var activeRoutes = ["A", "B", "C", "D", "E", "F", "G", "J", "K", "L", "M", 
         "O", "P", "Q", "S", "T", "V", "W"];
 var activeDays = [0, 1, 2, 3, 4, 5, 6];
+var activeStop = null;
 var dayNames = ["S", "M", "T", "W", "T", "F", "S"];
 var routeColors = {A:"#F0649E", B:"#50863D", C:"#A86B79", D:"#0B7BC0",
     E:"#60BB46", F:"#825DA8", G:"#51929F", J:"#D6A477", K:"#F26524",
@@ -32,19 +33,12 @@ var routeTerminals = {A:"Silo", B:"MU", C:"Silo", D:"Silo",
 var routeBusiestStopB = new Object();
 var routeBusiestStopD = new Object();
 
-
-// Main display, contains all other displays
-var canvas = d3.select("body")
-    .append("svg")
-    .attr({
-        width: "100%",
-        height: "100%",
-        //viewBox: "0 0 960 560"
-    });
-
 // Displays a map with bus route overlays
 var mapDisplay = d3.select("body").append("div")
-    .attr("id", "map-canvas")
+    .attr({
+        id: "map-canvas",
+        class: "displayDiv"
+    })
     .style({
         position: "absolute",
         left: "0px",
@@ -54,42 +48,74 @@ var mapDisplay = d3.select("body").append("div")
     });
     
 // Displays a graph of passengers vs. bus line
-var passCountDisplay = canvas.append("svg")
-    .attr({
-        x: 0,
-        y: "67%",
+var passCountDisplay = d3.select("body").append("div")
+    .attr("class", "displayDiv")
+    .style({
+        position: "absolute",
+        left: "0px",
+        top: "67%",
         width: "50%",
-        height: "33%",
-        //viewBox: "0 0 480 195"
+        height: "33%"
+    })
+    .append("svg")
+    .attr({
+        class: "display",
+        width: "100%",
+        height: "100%",
+        viewBox: "0 0 480 195"
     });
 
 // Displays a graph of how many passengers boarded/deboarded at a stop
-var stopInfoDisplay = canvas.append("svg")
-    .attr({
-        x: "50%",
-        y: "67%",
+var stopInfoDisplay = d3.select("body").append("div")
+    .attr("class", "displayDiv")
+    .style({
+        position: "absolute",
+        left: "50%",
+        top: "67%",
         width: "50%",
-        height: "33%",
+        height: "33%"
+    })
+    .append("svg")
+    .attr({
+        class: "display",
+        width: "100%",
+        height: "100%",
         viewBox: "0 0 480 195"
     });
 
 // Contains controls for manipulating what data is displayed
-var controlDisplay = canvas.append("svg")
-    .attr({
-        x: "73%",
-        y: 0,
+var controlDisplay = d3.select("body").append("div")
+    .attr("class", "displayDiv")
+    .style({
+        position: "absolute",
+        left: "73%",
+        top: "0px",
         width: "27%",
-        height: "48.25%",
+        height: "48.25%"
+    })
+    .append("svg")
+    .attr({
+        class: "display",
+        width: "100%",
+        height: "100%",
         viewBox: "0 0 260 260"
     });
 
 // Contains info about the currently selected route
-var routeInfoDisplay = canvas.append("svg")
-    .attr({
-        x: "73%",
-        y: "48.25%",
+var routeInfoDisplay = d3.select("body").append("div")
+    .attr("class", "displayDiv")
+    .style({
+        position: "absolute",
+        left: "73%",
+        top: "48.25%",
         width: "27%",
-        height: "18.75%",
+        height: "18.75%"
+    })
+    .append("svg")
+    .attr({
+        class: "display",
+        width: "100%",
+        height: "100%",
         viewBox: "0 0 260 105"
     });
 
@@ -110,6 +136,7 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
     function initDisplays() {
         initControlDisplay();
         initMapDisplay();
+        initStopInfoDisplay();
     }
     
     function updateDisplays() {
@@ -138,10 +165,6 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
         var sizeScale = d3.scale.linear()
             .domain([0, d3.max(byRoute, function(d) { return d.values; })])
             .range([0, 100]);
-
-        var rgbScale = d3.scale.linear()
-            .domain([0, d3.max(byRoute, function(d) { return d.values; })])
-            .range([0, 255]);
 
         // Bars
         // Enter
@@ -220,6 +243,27 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
         };
         var map = new google.maps.Map(document.getElementById("map-canvas"), mapOptions);
         
+    }
+    
+    function initStopInfoDisplay() {
+        if(activeStop === null) {
+            stopInfoDisplay.append("text")
+                .attr({
+                    "text-anchor": "middle",
+                    x: "50%",
+                    y: "50%"
+                })
+                .text("Select a stop on the map to view details.")
+        }
+        
+//        var xScale = d3.scale.linear()
+//            .domain([0, d3.max(byDate, function(d) { return d.values; })])
+//            .range([0, 130]);
+//        
+//        var yScale = d3.time.scale()
+//            .domain([d3.min(data, function(d) { return d.date; }),
+//                d3.max(data, function(d) { return d.date; })])
+//            .range([0, 182]);
     }
     
     function initTimescaleControl() {

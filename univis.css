@@ -21,6 +21,14 @@ body {
     text-align: center;
 }
 
+.display {
+    
+}
+
+.displayDiv {
+    border: 1px solid black
+}
+
 .dataSwitch {
     fill-opacity: 0;
     cursor: pointer;
