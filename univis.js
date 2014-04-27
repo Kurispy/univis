@@ -237,6 +237,15 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
     }
     
     function initMapDisplay() {
+        var byStop = d3.nest()
+            .key(function(d) { return d.stoptitle; })
+            .rollup(function(d) {
+                return d3.sum(d, function(b) { 
+                    return b.boarding;
+                });
+            })
+            .map(data, d3.map);
+        
         var mapOptions = {
           center: new google.maps.LatLng(38.553596, -121.739240),
           zoom: 14
@@ -248,9 +257,12 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
             function(routeData) {
                 var routes = routeData.getElementsByTagName("route");
                 for(var i = 0; i < routes.length; i++) {
+                    // Filter out any routes that we don't have data for
+                    if(activeRoutes.indexOf(routes[i].getAttribute("title")) === -1)
+                        continue;
+                    
                     var paths = routes[i].getElementsByTagName("path");
                     for(var j = 0; j < paths.length; j++) {
-                        console.log("test");
                         var points = paths[j].getElementsByTagName("point");
                         var latlongs = new google.maps.MVCArray();
                         for(var k = 0; k < points.length; k++) {
@@ -265,8 +277,31 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
                         });
                         polyline.setMap(map);
                     }
+                    
+                    var stops = routes[i].getElementsByTagName("stop");
+                    for(var j = 0; j < stops.length; j++) {
+                        // Filter out any stops that we don' have data for
+                        if(typeof byStop.get(stops[j].getAttribute("title")) === "undefined")
+                            continue;
+                        
+                        var circle = new google.maps.Circle({
+                            center: new google.maps.LatLng(stops[j].getAttribute("lat"), stops[j].getAttribute("lon")),
+                            radius: Math.max(byStop.get(stops[j].getAttribute("title")) / 100, 2),
+                            zIndex: -(Math.round(byStop.get(stops[j].getAttribute("title")) / 100)),
+                            map: map,
+                            fillColor: routes[i].getAttribute("color")
+                        });
+                        setListener(circle, stops[j].getAttribute("title"));
+                    }
                 }
         });
+        
+        // Listener closure
+        function setListener(circle, name) {
+            google.maps.event.addListener(circle, 'click', function(event) {
+                activeStop = name;
+            });
+        }
     }
     
     function initStopInfoDisplay() {
