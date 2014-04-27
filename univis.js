@@ -2,7 +2,7 @@ var barPad = 1;
 var activeRoutes = ["A", "B", "C", "D", "E", "F", "G", "J", "K", "L", "M", 
         "O", "P", "Q", "S", "T", "V", "W"];
 var activeDays = [0, 1, 2, 3, 4, 5, 6];
-var activeStop = null;
+var activeStop = "Hutchison & California (WB)";
 var dayNames = ["S", "M", "T", "W", "T", "F", "S"];
 var routeColors = {A:"#F0649E", B:"#50863D", C:"#A86B79", D:"#0B7BC0",
     E:"#60BB46", F:"#825DA8", G:"#51929F", J:"#D6A477", K:"#F26524",
@@ -238,11 +238,35 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
     
     function initMapDisplay() {
         var mapOptions = {
-          center: new google.maps.LatLng(38.554739, -121.734095),
-          zoom: 13
+          center: new google.maps.LatLng(38.553596, -121.739240),
+          zoom: 14
         };
-        var map = new google.maps.Map(document.getElementById("map-canvas"), mapOptions);
-        
+        var map = new google.maps.Map(document.getElementById("map-canvas"),
+            mapOptions);
+
+        d3.xml("http://webservices.nextbus.com/service/publicXMLFeed?command=routeConfig&a=unitrans",
+            function(routeData) {
+                var routes = routeData.getElementsByTagName("route");
+                for(var i = 0; i < routes.length; i++) {
+                    var paths = routes[i].getElementsByTagName("path");
+                    for(var j = 0; j < paths.length; j++) {
+                        console.log("test");
+                        var points = paths[j].getElementsByTagName("point");
+                        var latlongs = new google.maps.MVCArray();
+                        for(var k = 0; k < points.length; k++) {
+                            latlongs.push(new google.maps.LatLng(points[k].getAttribute("lat"),
+                                points[k].getAttribute("lon")));
+                        }
+                        var polyline = new google.maps.Polyline({
+                            path: latlongs,
+                            strokeColor: routes[i].getAttribute("color"),
+                            strokeOpacity: 0.25,
+                            strokeWeight: 4
+                        });
+                        polyline.setMap(map);
+                    }
+                }
+        });
     }
     
     function initStopInfoDisplay() {
@@ -253,17 +277,84 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
                     x: "50%",
                     y: "50%"
                 })
-                .text("Select a stop on the map to view details.")
+                .text("Select a stop on the map to view details.");
+            
+            return;
         }
         
-//        var xScale = d3.scale.linear()
-//            .domain([0, d3.max(byDate, function(d) { return d.values; })])
-//            .range([0, 130]);
-//        
-//        var yScale = d3.time.scale()
-//            .domain([d3.min(data, function(d) { return d.date; }),
-//                d3.max(data, function(d) { return d.date; })])
-//            .range([0, 182]);
+        var activeData = data.filter(function(element) {
+            return activeStop === element.stoptitle; 
+        });
+        
+        var chart = stopInfoDisplay.append("g")
+            .attr("transform", "translate(50, 30)");
+        
+        var xScale = d3.time.scale()
+            .domain([d3.min(activeData, function(d) { return d.date; }),
+                d3.max(activeData, function(d) { return d.date; })])
+            .range([0, 400]);
+        
+        var yScale = d3.scale.linear()
+            .domain([-(d3.max(activeData, function(d) { return d.deboarding; })),
+                d3.max(activeData, function(d) { return d.boarding; })])
+            .range([120, 0]);
+        
+        var xAxis = d3.svg.axis()
+            .scale(xScale)
+            .orient("bottom")
+            .tickSize(1)
+            .ticks(10);
+        
+        var yAxis = d3.svg.axis()
+            .scale(yScale)
+            .orient("left")
+            .tickSize(1)
+            .ticks(3);
+        
+        chart.append("g")
+            .attr({
+                class: "timeAxis",
+                transform: "translate(0, 67)"
+            })
+            .call(xAxis);
+        
+        chart.append("g")
+            .attr("class", "axis")
+            .call(yAxis);
+        
+        var zoom = d3.behavior.zoom()
+            .x(xScale)
+            .y(yScale)
+            .scaleExtent([1, 100])
+            .on("zoom", onZoom);
+    
+        chart.call(zoom);
+    
+        chart.append("g")
+            .attr("id", "points")
+            .selectAll("circle")
+            .data(activeData)
+            .enter()
+            .append("circle")
+            .attr("class", "point")
+            .attr("cx", function(d) {
+                return xScale(d.date);
+            })
+            .attr("cy", function(d, i){
+                return yScale(d.boarding);
+            })
+            .attr("r", 1)
+            .attr("fill", function(d, i) {
+                return routeColors[d.route];
+            });
+        
+        function onZoom() {
+            chart.select(".timeAxis").call(xAxis);
+            chart.selectAll("#points>circle")
+                .attr("cx", function(d) {
+                    return xScale(d.date);
+                });
+        }
     }
     
     function initTimescaleControl() {
