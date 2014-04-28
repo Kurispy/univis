@@ -2,7 +2,7 @@ var barPad = 1;
 var activeRoutes = ["A", "B", "C", "D", "E", "F", "G", "J", "K", "L", "M", 
         "O", "P", "Q", "S", "T", "V", "W"];
 var activeDays = [0, 1, 2, 3, 4, 5, 6];
-var activeStop = "Hutchison & California (WB)";
+var activeStop = "";
 var dayNames = ["S", "M", "T", "W", "T", "F", "S"];
 var routeColors = {A:"#F0649E", B:"#50863D", C:"#A86B79", D:"#0B7BC0",
     E:"#60BB46", F:"#825DA8", G:"#51929F", J:"#D6A477", K:"#F26524",
@@ -271,9 +271,11 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
                         }
                         var polyline = new google.maps.Polyline({
                             path: latlongs,
-                            strokeColor: routes[i].getAttribute("color"),
+                            strokeColor: "#" + routes[i].getAttribute("color"),
                             strokeOpacity: 0.25,
-                            strokeWeight: 4
+                            strokeWeight: 4,
+                            zIndex: -1000000,
+                            clickable: false
                         });
                         polyline.setMap(map);
                     }
@@ -289,7 +291,9 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
                             radius: Math.max(byStop.get(stops[j].getAttribute("title")) / 100, 2),
                             zIndex: -(Math.round(byStop.get(stops[j].getAttribute("title")) / 100)),
                             map: map,
-                            fillColor: routes[i].getAttribute("color")
+                            fillColor: "#" + routes[i].getAttribute("color"),
+                            fillOpacity: 0.15,
+                            strokeWeight: 2
                         });
                         setListener(circle, stops[j].getAttribute("title"));
                     }
@@ -300,96 +304,19 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
         function setListener(circle, name) {
             google.maps.event.addListener(circle, 'click', function(event) {
                 activeStop = name;
+                updateStopInfoDisplay();
             });
         }
     }
     
     function initStopInfoDisplay() {
-        if(activeStop === null) {
-            stopInfoDisplay.append("text")
-                .attr({
-                    "text-anchor": "middle",
-                    x: "50%",
-                    y: "50%"
-                })
-                .text("Select a stop on the map to view details.");
-            
-            return;
-        }
-        
-        var activeData = data.filter(function(element) {
-            return activeStop === element.stoptitle; 
-        });
-        
-        var chart = stopInfoDisplay.append("g")
-            .attr("transform", "translate(50, 30)");
-        
-        var xScale = d3.time.scale()
-            .domain([d3.min(activeData, function(d) { return d.date; }),
-                d3.max(activeData, function(d) { return d.date; })])
-            .range([0, 400]);
-        
-        var yScale = d3.scale.linear()
-            .domain([-(d3.max(activeData, function(d) { return d.deboarding; })),
-                d3.max(activeData, function(d) { return d.boarding; })])
-            .range([120, 0]);
-        
-        var xAxis = d3.svg.axis()
-            .scale(xScale)
-            .orient("bottom")
-            .tickSize(1)
-            .ticks(10);
-        
-        var yAxis = d3.svg.axis()
-            .scale(yScale)
-            .orient("left")
-            .tickSize(1)
-            .ticks(3);
-        
-        chart.append("g")
+        stopInfoDisplay.append("text")
             .attr({
-                class: "timeAxis",
-                transform: "translate(0, 67)"
+                "text-anchor": "middle",
+                x: "50%",
+                y: "50%"
             })
-            .call(xAxis);
-        
-        chart.append("g")
-            .attr("class", "axis")
-            .call(yAxis);
-        
-        var zoom = d3.behavior.zoom()
-            .x(xScale)
-            .y(yScale)
-            .scaleExtent([1, 100])
-            .on("zoom", onZoom);
-    
-        chart.call(zoom);
-    
-        chart.append("g")
-            .attr("id", "points")
-            .selectAll("circle")
-            .data(activeData)
-            .enter()
-            .append("circle")
-            .attr("class", "point")
-            .attr("cx", function(d) {
-                return xScale(d.date);
-            })
-            .attr("cy", function(d, i){
-                return yScale(d.boarding);
-            })
-            .attr("r", 1)
-            .attr("fill", function(d, i) {
-                return routeColors[d.route];
-            });
-        
-        function onZoom() {
-            chart.select(".timeAxis").call(xAxis);
-            chart.selectAll("#points>circle")
-                .attr("cx", function(d) {
-                    return xScale(d.date);
-                });
-        }
+            .text("Select a stop on the map to view details.");
     }
     
     function initTimescaleControl() {
@@ -404,7 +331,6 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
                 });
             })
             .entries(data);
-        
         
         var timescaleController = controlDisplay.append("g")
             .attr("transform", "translate(26, 26)");
@@ -454,9 +380,27 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
             
         function onZoom() {
             timescaleController.select(".timeAxis").call(yAxis);
+            console.log(d3.event.scale + " " + d3.event.translate);
+            drillDown(this);
             timescaleController.selectAll("rect")
                 .attr("transform", "translate(0, " + d3.event.translate[1] + 
                     "), scale(" + d3.event.scale + ")");
+        }
+        
+        function drillDown(container) {
+//            console.log(yScale.invert(d3.mouse(container)[1]));
+//            
+//            d3.transition().duration(750).tween("zoom", function() {
+//            var iy = d3.interpolate(yScale.domain(), [-height / 2, height / 2]);
+//                return function(t) {
+//                  zoom.x(x.domain(ix(t))).y(y.domain(iy(t)));
+//                  zoomed();
+//                };
+//            });
+//            var filteredData = data.filter(function(element) {
+//            return activeRoutes.indexOf(element.route) !== -1
+//               && activeDays.indexOf(element.date.getDay()) !== -1; 
+//            });
         }
     }
     
@@ -626,5 +570,105 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
                     updateDisplays(data);
                 }
             });
+    }
+    
+    function updateStopInfoDisplay() {
+        var activeData = data.filter(function(element) {
+            return activeStop === element.stoptitle; 
+        });
+        
+        
+        
+        stopInfoDisplay.selectAll("*").remove();
+        
+        var chart = stopInfoDisplay.append("g")
+            .attr("transform", "translate(50, 30)");
+        
+        var xScale = d3.time.scale()
+            .domain([d3.min(activeData, function(d) { return d.date; }),
+                d3.max(activeData, function(d) { return d.date; })])
+            .range([0, 400]);
+        
+        var bound = Math.max(d3.max(activeData, function(d) { return d.deboarding; }),
+            d3.max(activeData, function(d) { return d.boarding; }));
+        
+        var yScale = d3.scale.linear()
+            .domain([-bound, bound])
+            .range([120, 0]);
+        
+        var xAxis = d3.svg.axis()
+            .scale(xScale)
+            .orient("bottom")
+            .tickSize(1)
+            .ticks(10);
+        
+        var yAxis = d3.svg.axis()
+            .scale(yScale)
+            .orient("left")
+            .tickSize(1)
+            .ticks(5);
+        
+        chart.append("g")
+            .attr({
+                class: "timeAxis",
+                transform: "translate(0, 60)"
+            })
+            .call(xAxis);
+        
+        chart.append("g")
+            .attr("class", "axis")
+            .call(yAxis);
+        
+        var zoom = d3.behavior.zoom()
+            .x(xScale)
+            .y(yScale)
+            .scaleExtent([1, 100])
+            .on("zoom", onZoom);
+    
+        chart.call(zoom);
+    
+        chart.append("g")
+            .attr("id", "points")
+            .selectAll("circle")
+            .data(activeData)
+            .enter()
+            .append("circle")
+            .attr("class", "point")
+            .attr("cx", function(d) {
+                return xScale(d.date);
+            })
+            .attr("cy", function(d, i){
+                return yScale(d.boarding);
+            })
+            .attr("r", 1)
+            .attr("fill", function(d, i) {
+                return routeColors[d.route];
+            });
+            
+        chart.append("g")
+            .attr("id", "points")
+            .selectAll("circle")
+            .data(activeData)
+            .enter()
+            .append("circle")
+            .attr("class", "point")
+            .attr("cx", function(d) {
+                return xScale(d.date);
+            })
+            .attr("cy", function(d, i){
+                return yScale(-(d.deboarding));
+            })
+            .attr("r", 1)
+            .attr("fill", function(d, i) {
+                return routeColors[d.route];
+            });
+        
+        function onZoom() {
+            chart.select(".timeAxis").call(xAxis);
+            chart.selectAll("#points>circle")
+                .attr("cx", function(d) {
+                    return xScale(d.date);
+                });
+        }
     }
 });
