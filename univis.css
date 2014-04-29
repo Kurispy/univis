@@ -28,7 +28,7 @@ body {
 
 .displayDiv {
     background: rgb(229, 227, 223);
-    border: 2px solid black;}
+}
 
 .dataSwitch {
     fill-opacity: 0;
@@ -44,14 +44,13 @@ body {
     text-anchor: middle
 }
 
-.routeInfoHeader {
+.infoHeader {
     font-size: 14pt;
     font-weight: bold
 }
 
-.routeInfoText {
-    font-size: 10pt
-}
+.infoText {
+    font-size: 8pt;}
 
 .axis {
     font-size: 6pt

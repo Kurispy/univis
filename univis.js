@@ -56,7 +56,8 @@ var controlDisplay = d3.select("body").append("div")
         left: "73%",
         top: "0px",
         width: "27%",
-        height: "48.25%"
+        height: "48.25%",
+        "border-left": "2px solid black"
     })
     .append("svg")
     .attr({
@@ -74,7 +75,9 @@ var routeInfoDisplay = d3.select("body").append("div")
         left: "73%",
         top: "48.25%",
         width: "27%",
-        height: "18.75%"
+        height: "18.75%",
+        "border-top": "2px solid black",
+        "border-left": "2px solid black"
     })
     .append("svg")
     .attr({
@@ -92,7 +95,8 @@ var passCountDisplay = d3.select("body").append("div")
         left: "0px",
         top: "67%",
         width: "50%",
-        height: "33%"
+        height: "33%",
+        "border-top": "2px solid black"
     })
     .append("svg")
     .attr({
@@ -110,7 +114,9 @@ var stopInfoDisplay = d3.select("body").append("div")
         left: "50%",
         top: "67%",
         width: "50%",
-        height: "33%"
+        height: "33%",
+        "border-top": "2px solid black",
+        "border-left": "2px solid black"
     })
     .append("svg")
     .attr({
@@ -413,34 +419,10 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
                 }
             })
             .on("mouseover", function(d) {
-                routeInfoDisplay.append("text")
-                    .attr({
-                        class: "routeInfoHeader",
-                        x: 15,
-                        y: 15
-                    })
-                    .text(d + " Line");
-                
-                routeInfoDisplay.append("text")
-                    .attr({
-                        class: "routeInfoText",
-                        x: 15,
-                        y: 30
-                    })
-                    .text(routeDescriptions[d]);
-            
-                routeInfoDisplay.append("text")
-                    .attr({
-                        class: "routeInfoText",
-                        "text-anchor": "end",
-                        x: 260,
-                        y: 15
-                    })
-                    .text(routeTerminals[d]);
+                displayRouteInfo(d);
             })
             .on("mouseout", function(d) {
-                routeInfoDisplay.selectAll("text")
-                    .remove();
+                hideRouteInfo();
             });
 
         var dayButton = controlDisplay.append("g")
@@ -530,8 +512,25 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
                 width: 400
         });
         
+        stopInfoDisplay.append("text")
+            .attr({
+                class: "infoHeader",
+                x: 240,
+                y: 25,
+                "text-anchor": "middle"
+            })
+            .text(activeStop);
+    
+        stopInfoDisplay.append("text")
+            .attr({
+                transform: "translate(30, 110), rotate(-90)",
+                class: "infoText",
+                "text-anchor": "middle"
+            })
+            .text("Δ Passengers");
+        
         var chart = stopInfoDisplay.append("g")
-            .attr("transform", "translate(50, 30)");
+            .attr("transform", "translate(50, 50)");
         
         var xScale = d3.time.scale()
             .domain([d3.min(activeStopData, function(d) { return d.date; }),
@@ -653,15 +652,39 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
         byRoute.sort(function(a, b) {
             return d3.descending(a.values, b.values);
         });
-
+        
+        passCountDisplay.selectAll("*").remove();
+        
         // Scales
-        var sizeScale = d3.scale.linear()
+        var yScale = d3.scale.linear()
             .domain([0, d3.max(byRoute, function(d) { return d.values; })])
-            .range([0, 100]);
+            .range([120, 0]);
+        
+        var yAxis = d3.svg.axis()
+            .scale(yScale)
+            .orient("left")
+            .tickSize(1)
+            .ticks(5);
+        
+        passCountDisplay.append("text")
+            .attr({
+                class: "infoHeader",
+                x: 240,
+                y: 25,
+                "text-anchor": "middle"
+            })
+            .text("Aggregate Riders Per Route");
+        
+        passCountDisplay.append("g")
+            .attr("transform", "translate(49, 50)")
+            .attr("class", "axis")
+            .call(yAxis);
+    
+        var bars = passCountDisplay.append("g")
+                .attr("transform", "translate(50, 50)");
 
-        // Bars
         // Enter
-        passCountDisplay.selectAll("rect")
+        bars.selectAll("rect")
             .data(byRoute)
             .enter()
             .append("rect")
@@ -669,56 +692,59 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
                 d3.select(this)
                     .attr("stroke", "black");
 
-                routeInfoDisplay.append("text")
-                    .attr("id", "passCountTT")
-                    .attr("x", "50%")
-                    .attr("y", "25%")
-                    .text(d.key + " " + d.values);
+                displayRouteInfo(d.key);
             })
             .on("mouseout", function(d) {
                 d3.select(this)
                     .attr("stroke", null);
 
-                d3.selectAll("text#passCountTT")
-                    .remove();
+                hideRouteInfo();
             })
-            .attr("stroke-width", 2)
+            .attr("stroke-width", 1)
             .attr("x", function(d, i) {
-                return i * (100 / byRoute.length) + (barPad / 2) + "%";
+                return i * (400 / byRoute.length);
             })
             .attr("y", function(d) {
-                return 100 - sizeScale(d.values) + "%";
+                return yScale(d.values);
             })
-            .attr("width", (100 / byRoute.length - barPad) + "%")
+            .attr("width", (400 / byRoute.length) - 1)
             .attr("height", function(d) {
-                return sizeScale(d.values) + "%";
+                return 120 - yScale(d.values);
             })
             .attr("fill", function(d) {
                 return routeColors[d.key];
             });
-        
-        // Update
-        passCountDisplay.selectAll("rect")
-            .data(byRoute)
-            .attr("stroke-width", 2)
-            .attr("x", function(d, i) {
-                return i * (100 / byRoute.length) + (barPad / 2) + "%";
+    }
+    
+    function displayRouteInfo(route) {
+        routeInfoDisplay.append("text")
+            .attr({
+                class: "infoHeader",
+                x: 15,
+                y: 20
             })
-            .attr("y", function(d) {
-                return 100 - sizeScale(d.values) + "%";
+            .text(route + " Line");
+                
+        routeInfoDisplay.append("text")
+            .attr({
+                class: "infoText",
+                x: 15,
+                y: 35
             })
-            .attr("width", (100 / byRoute.length - barPad) + "%")
-            .attr("height", function(d) {
-                return sizeScale(d.values) + "%";
+            .text(routeDescriptions[route]);
+
+        routeInfoDisplay.append("text")
+            .attr({
+                class: "routeInfoText",
+                "text-anchor": "end",
+                x: 260,
+                y: 20
             })
-            .attr("fill", function(d) {
-                return routeColors[d.key];
-            });
-        
-        // Exit
-        passCountDisplay.selectAll("rect")
-            .data(byRoute)
-            .exit()
+            .text(routeTerminals[route]);
+    }
+    
+    function hideRouteInfo() {
+        routeInfoDisplay.selectAll("text")
             .remove();
     }
 });
