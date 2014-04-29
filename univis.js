@@ -3,6 +3,7 @@ var activeRoutes = ["A", "B", "C", "D", "E", "F", "G", "J", "K", "L", "M",
         "O", "P", "Q", "S", "T", "V", "W"];
 var activeDays = [0, 1, 2, 3, 4, 5, 6];
 var activeStop = "";
+var dateBlacklist = new Array();
 var dayNames = ["S", "M", "T", "W", "T", "F", "S"];
 var routeColors = {A:"#F0649E", B:"#50863D", C:"#A86B79", D:"#0B7BC0",
     E:"#60BB46", F:"#825DA8", G:"#51929F", J:"#D6A477", K:"#F26524",
@@ -47,6 +48,42 @@ var mapDisplay = d3.select("body").append("div")
         height: "67%"
     });
     
+// Contains controls for manipulating what data is displayed
+var controlDisplay = d3.select("body").append("div")
+    .attr("class", "displayDiv")
+    .style({
+        position: "absolute",
+        left: "73%",
+        top: "0px",
+        width: "27%",
+        height: "48.25%"
+    })
+    .append("svg")
+    .attr({
+        class: "display",
+        width: "100%",
+        height: "100%",
+        viewBox: "0 0 260 260"
+    });
+
+// Contains info about the currently selected route
+var routeInfoDisplay = d3.select("body").append("div")
+    .attr("class", "displayDiv")
+    .style({
+        position: "absolute",
+        left: "73%",
+        top: "48.25%",
+        width: "27%",
+        height: "18.75%"
+    })
+    .append("svg")
+    .attr({
+        class: "display",
+        width: "100%",
+        height: "100%",
+        viewBox: "0 0 260 105"
+    });
+    
 // Displays a graph of passengers vs. bus line
 var passCountDisplay = d3.select("body").append("div")
     .attr("class", "displayDiv")
@@ -83,42 +120,6 @@ var stopInfoDisplay = d3.select("body").append("div")
         viewBox: "0 0 480 195"
     });
 
-// Contains controls for manipulating what data is displayed
-var controlDisplay = d3.select("body").append("div")
-    .attr("class", "displayDiv")
-    .style({
-        position: "absolute",
-        left: "73%",
-        top: "0px",
-        width: "27%",
-        height: "48.25%"
-    })
-    .append("svg")
-    .attr({
-        class: "display",
-        width: "100%",
-        height: "100%",
-        viewBox: "0 0 260 260"
-    });
-
-// Contains info about the currently selected route
-var routeInfoDisplay = d3.select("body").append("div")
-    .attr("class", "displayDiv")
-    .style({
-        position: "absolute",
-        left: "73%",
-        top: "48.25%",
-        width: "27%",
-        height: "18.75%"
-    })
-    .append("svg")
-    .attr({
-        class: "display",
-        width: "100%",
-        height: "100%",
-        viewBox: "0 0 260 105"
-    });
-
 // Read in the csv file
 d3.csv("unitrans-oct-2011.csv", function(d) {
     return {
@@ -133,6 +134,15 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
     
     updateDisplays();
     
+    function getActiveData() {
+        // Examine current settings to see what data is active
+        return data.filter(function(element) {
+            return activeRoutes.indexOf(element.route) !== -1
+                && activeDays.indexOf(element.date.getDay()) !== -1
+                && dateBlacklist.indexOf(element.date.getDate()) === -1; 
+        });
+    }
+    
     function initDisplays() {
         initControlDisplay();
         initMapDisplay();
@@ -140,93 +150,9 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
     }
     
     function updateDisplays() {
-        // Examine current settings to see what data is active
-        var activeData = data.filter(function(element) {
-            return activeRoutes.indexOf(element.route) !== -1
-               && activeDays.indexOf(element.date.getDay()) !== -1; 
-        });
-        
-        // PASSENGER COUNT DISPLAY
-        var byRoute = d3.nest()
-            .key(function(d) { return d.route; })
-            .sortKeys(d3.ascending)
-            .rollup(function(d) {
-                return d3.sum(d, function(b) { 
-                    return b.boarding;
-                });
-            })
-            .entries(activeData);
-
-        byRoute.sort(function(a, b) {
-            return d3.descending(a.values, b.values);
-        });
-
-        // Scales
-        var sizeScale = d3.scale.linear()
-            .domain([0, d3.max(byRoute, function(d) { return d.values; })])
-            .range([0, 100]);
-
-        // Bars
-        // Enter
-        passCountDisplay.selectAll("rect")
-            .data(byRoute)
-            .enter()
-            .append("rect")
-            .on("mouseover", function(d) {
-                d3.select(this)
-                    .attr("stroke", "black");
-
-                passCountDisplay.append("text")
-                    .attr("id", "passCountTT")
-                    .attr("x", "50%")
-                    .attr("y", "25%")
-                    .text(d.key + " " + d.values);
-            })
-            .on("mouseout", function(d) {
-                d3.select(this)
-                    .attr("stroke", null);
-
-                d3.selectAll("text#passCountTT")
-                    .remove();
-            })
-            .attr("stroke-width", 2)
-            .attr("x", function(d, i) {
-                return i * (100 / byRoute.length) + (barPad / 2) + "%";
-            })
-            .attr("y", function(d) {
-                return 100 - sizeScale(d.values) + "%";
-            })
-            .attr("width", (100 / byRoute.length - barPad) + "%")
-            .attr("height", function(d) {
-                return sizeScale(d.values) + "%";
-            })
-            .attr("fill", function(d) {
-                return routeColors[d.key];
-            });
-        
-        // Update
-        passCountDisplay.selectAll("rect")
-            .data(byRoute)
-            .attr("stroke-width", 2)
-            .attr("x", function(d, i) {
-                return i * (100 / byRoute.length) + (barPad / 2) + "%";
-            })
-            .attr("y", function(d) {
-                return 100 - sizeScale(d.values) + "%";
-            })
-            .attr("width", (100 / byRoute.length - barPad) + "%")
-            .attr("height", function(d) {
-                return sizeScale(d.values) + "%";
-            })
-            .attr("fill", function(d) {
-                return routeColors[d.key];
-            });
-        
-        // Exit
-        passCountDisplay.selectAll("rect")
-            .data(byRoute)
-            .exit()
-            .remove();
+        var activeData = getActiveData();
+        updateStopInfoDisplay(activeData);
+        updatePassCountDisplay(activeData);
     }
     
     function initControlDisplay() {
@@ -241,7 +167,7 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
             .key(function(d) { return d.stoptitle; })
             .rollup(function(d) {
                 return d3.sum(d, function(b) { 
-                    return b.boarding;
+                    return b.boarding + b.deboarding;
                 });
             })
             .map(data, d3.map);
@@ -292,7 +218,7 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
                             zIndex: -(Math.round(byStop.get(stops[j].getAttribute("title")) / 100)),
                             map: map,
                             fillColor: "#" + routes[i].getAttribute("color"),
-                            fillOpacity: 0.15,
+                            fillOpacity: 0.09,
                             strokeWeight: 2
                         });
                         setListener(circle, stops[j].getAttribute("title"));
@@ -304,7 +230,7 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
         function setListener(circle, name) {
             google.maps.event.addListener(circle, 'click', function(event) {
                 activeStop = name;
-                updateStopInfoDisplay();
+                updateStopInfoDisplay(getActiveData());
             });
         }
     }
@@ -320,8 +246,7 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
     }
     
     function initTimescaleControl() {
-        
-        
+        var height = 234, width = 130;
         var byDate = d3.nest()
             .key(function(d) { return d.date.getDate(); })
             .sortKeys(d3.ascending)
@@ -333,16 +258,16 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
             .entries(data);
         
         var timescaleController = controlDisplay.append("g")
-            .attr("transform", "translate(26, 26)");
+            .attr("transform", "translate(26, 13)");
         
         var xScale = d3.scale.linear()
             .domain([0, d3.max(byDate, function(d) { return d.values; })])
-            .range([0, 130]);
+            .range([0, width]);
         
         var yScale = d3.time.scale()
             .domain([d3.min(data, function(d) { return d.date; }),
                 d3.max(data, function(d) { return d.date; })])
-            .range([0, 182]);
+            .range([0, height]);
         
         var yAxis = d3.svg.axis()
             .scale(yScale)
@@ -350,14 +275,14 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
             .tickSize(0)
             .ticks(31);
     
-        var zoom = d3.behavior.zoom()
-            .x(xScale)
-            .y(yScale)
-            .size([130, 182])
-            .scaleExtent([1, 100])
-            .on("zoom", onZoom);
+//        var zoom = d3.behavior.zoom()
+//            .x(xScale)
+//            .y(yScale)
+//            .size([130, 182])
+//            .scaleExtent([1, 100])
+//            .on("zoom", onZoom);
         
-        timescaleController.call(zoom);
+//        timescaleController.call(zoom);
         
         timescaleController.append("g")
             .attr("class", "timeAxis")
@@ -367,27 +292,40 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
             .data(byDate)
             .enter()
             .append("rect")
+            .attr("id", function(d, i) {
+                return i + 1;
+            })
             .attr("width", function(d) {
                 return xScale(d.values);
             })
-            .attr("height", 182 / byDate.length)
+            .attr("height", height / byDate.length - 1)
             .attr("y", function(d, i){
-                return (182 / byDate.length) * i;
+                return (height / byDate.length) * ((+d.key) - 1) - 0.5;
             })
-            .attr("fill", function(d, i) {
-                return (i % 2) ? "#888" : "#000";
+            .attr("fill", "steelblue")
+            .on("click", function(d) {
+                if(dateBlacklist.indexOf(+d.key) === -1) {
+                    d3.select(this).attr("fill-opacity", "0.5");
+                    dateBlacklist.push(+d.key);
+                    updateDisplays();
+                }
+                else {
+                    d3.select(this).attr("fill-opacity", "1.0");
+                    dateBlacklist.splice(dateBlacklist.indexOf(+d.key),1);
+                    updateDisplays();
+                }
             });
             
-        function onZoom() {
-            timescaleController.select(".timeAxis").call(yAxis);
-            console.log(d3.event.scale + " " + d3.event.translate);
-            drillDown(this);
-            timescaleController.selectAll("rect")
-                .attr("transform", "translate(0, " + d3.event.translate[1] + 
-                    "), scale(" + d3.event.scale + ")");
-        }
+//        function onZoom() {
+//            timescaleController.select(".timeAxis").call(yAxis);
+//            console.log(d3.event.scale + " " + d3.event.translate);
+//            drillDown(this);
+//            timescaleController.selectAll("rect")
+//                .attr("transform", "translate(0, " + d3.event.translate[1] + 
+//                    "), scale(" + d3.event.scale + ")");
+//        }
         
-        function drillDown(container) {
+//        function drillDown(container) {
 //            console.log(yScale.invert(d3.mouse(container)[1]));
 //            
 //            d3.transition().duration(750).tween("zoom", function() {
@@ -401,11 +339,12 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
 //            return activeRoutes.indexOf(element.route) !== -1
 //               && activeDays.indexOf(element.date.getDay()) !== -1; 
 //            });
-        }
+//        }
     }
     
     function initRouteButtons() {
         var routeButton = controlDisplay.append("g")
+            .attr("transform", "translate(0, 13)")
             .selectAll("g")
             .data(activeRoutes)
             .enter()
@@ -505,6 +444,7 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
             });
 
         var dayButton = controlDisplay.append("g")
+            .attr("transform", "translate(-13, 13)")
             .selectAll("g")
             .data(activeDays)
             .enter()
@@ -557,7 +497,7 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
                         .select("text.dataSwitchText")
                         .attr("fill", "#FFFFFF");
                     activeDays.splice(activeDays.indexOf(d),1);
-                    updateDisplays(data);
+                    updateDisplays();
                 }
                 else {
                     d3.select(this.parentNode)
@@ -567,30 +507,39 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
                         .select("text.dataSwitchText")
                         .attr("fill", "#000000");
                     activeDays.push(d);
-                    updateDisplays(data);
+                    updateDisplays();
                 }
             });
     }
     
-    function updateStopInfoDisplay() {
-        var activeData = data.filter(function(element) {
+    function updateStopInfoDisplay(activeData) {
+        if(activeStop === "")
+            return;
+        
+        var activeStopData = activeData.filter(function(element) {
             return activeStop === element.stoptitle; 
         });
         
-        
-        
         stopInfoDisplay.selectAll("*").remove();
+        
+        stopInfoDisplay.append("defs").append("clipPath")
+            .attr("id", "clipBox")
+            .append("rect")
+            .attr({
+                height: 120,
+                width: 400
+        });
         
         var chart = stopInfoDisplay.append("g")
             .attr("transform", "translate(50, 30)");
         
         var xScale = d3.time.scale()
-            .domain([d3.min(activeData, function(d) { return d.date; }),
-                d3.max(activeData, function(d) { return d.date; })])
+            .domain([d3.min(activeStopData, function(d) { return d.date; }),
+                d3.max(activeStopData, function(d) { return d.date; })])
             .range([0, 400]);
         
-        var bound = Math.max(d3.max(activeData, function(d) { return d.deboarding; }),
-            d3.max(activeData, function(d) { return d.boarding; }));
+        var bound = Math.max(d3.max(activeStopData, function(d) { return d.deboarding; }),
+            d3.max(activeStopData, function(d) { return d.boarding; }));
         
         var yScale = d3.scale.linear()
             .domain([-bound, bound])
@@ -599,7 +548,7 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
         var xAxis = d3.svg.axis()
             .scale(xScale)
             .orient("bottom")
-            .tickSize(1)
+            .tickSize(0)
             .ticks(10);
         
         var yAxis = d3.svg.axis()
@@ -611,7 +560,7 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
         chart.append("g")
             .attr({
                 class: "timeAxis",
-                transform: "translate(0, 60)"
+                transform: "translate(0, 120)"
             })
             .call(xAxis);
         
@@ -626,11 +575,20 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
             .on("zoom", onZoom);
     
         chart.call(zoom);
-    
+        
+        chart.append("line")
+            .attr({
+                x1: 0,
+                y1: 60,
+                x2: 400,
+                y2: 60,
+                style: "stroke: black; stroke-width: 1"
+            });
+        
         chart.append("g")
             .attr("id", "points")
             .selectAll("circle")
-            .data(activeData)
+            .data(activeStopData)
             .enter()
             .append("circle")
             .attr("class", "point")
@@ -643,12 +601,13 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
             .attr("r", 1)
             .attr("fill", function(d, i) {
                 return routeColors[d.route];
-            });
+            })
+            .attr("clip-path", "url(#clipBox)");
             
         chart.append("g")
             .attr("id", "points")
             .selectAll("circle")
-            .data(activeData)
+            .data(activeStopData)
             .enter()
             .append("circle")
             .attr("class", "point")
@@ -661,6 +620,14 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
             .attr("r", 1)
             .attr("fill", function(d, i) {
                 return routeColors[d.route];
+            })
+            .attr("clip-path", "url(#clipBox)");
+            
+        chart.append("rect")
+            .attr({
+                height: 120,
+                width: 400,
+                opacity: 0
             });
         
         function onZoom() {
@@ -670,5 +637,88 @@ d3.csv("unitrans-oct-2011.csv", function(d) {
                     return xScale(d.date);
                 });
         }
+    }
+    
+    function updatePassCountDisplay(activeData) {
+        var byRoute = d3.nest()
+            .key(function(d) { return d.route; })
+            .sortKeys(d3.ascending)
+            .rollup(function(d) {
+                return d3.sum(d, function(b) { 
+                    return b.boarding;
+                });
+            })
+            .entries(activeData);
+
+        byRoute.sort(function(a, b) {
+            return d3.descending(a.values, b.values);
+        });
+
+        // Scales
+        var sizeScale = d3.scale.linear()
+            .domain([0, d3.max(byRoute, function(d) { return d.values; })])
+            .range([0, 100]);
+
+        // Bars
+        // Enter
+        passCountDisplay.selectAll("rect")
+            .data(byRoute)
+            .enter()
+            .append("rect")
+            .on("mouseover", function(d) {
+                d3.select(this)
+                    .attr("stroke", "black");
+
+                routeInfoDisplay.append("text")
+                    .attr("id", "passCountTT")
+                    .attr("x", "50%")
+                    .attr("y", "25%")
+                    .text(d.key + " " + d.values);
+            })
+            .on("mouseout", function(d) {
+                d3.select(this)
+                    .attr("stroke", null);
+
+                d3.selectAll("text#passCountTT")
+                    .remove();
+            })
+            .attr("stroke-width", 2)
+            .attr("x", function(d, i) {
+                return i * (100 / byRoute.length) + (barPad / 2) + "%";
+            })
+            .attr("y", function(d) {
+                return 100 - sizeScale(d.values) + "%";
+            })
+            .attr("width", (100 / byRoute.length - barPad) + "%")
+            .attr("height", function(d) {
+                return sizeScale(d.values) + "%";
+            })
+            .attr("fill", function(d) {
+                return routeColors[d.key];
+            });
+        
+        // Update
+        passCountDisplay.selectAll("rect")
+            .data(byRoute)
+            .attr("stroke-width", 2)
+            .attr("x", function(d, i) {
+                return i * (100 / byRoute.length) + (barPad / 2) + "%";
+            })
+            .attr("y", function(d) {
+                return 100 - sizeScale(d.values) + "%";
+            })
+            .attr("width", (100 / byRoute.length - barPad) + "%")
+            .attr("height", function(d) {
+                return sizeScale(d.values) + "%";
+            })
+            .attr("fill", function(d) {
+                return routeColors[d.key];
+            });
+        
+        // Exit
+        passCountDisplay.selectAll("rect")
+            .data(byRoute)
+            .exit()
+            .remove();
     }
 });
